@@ -1,0 +1,42 @@
+services:
+  db:
+    # ✅ official pgvector image + Postgres 16
+    image: pgvector/pgvector:pg16
+    container_name: hrbot-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sami2615
+      POSTGRES_DB: hrbot
+    ports:
+      - "5433:5432"   # host:container
+    volumes:
+      - hrbot_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hrbot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    container_name: hrbot-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8081
+      PGHOST: db         # <— inside Docker, talk to service name
+      PGPORT: 5432
+      PGDATABASE: hrbot
+      PGUSER: postgres
+      PGPASSWORD: sami2615
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "8081:8081"
+    # Dev hot-reload (optional):
+    # command: ["npx", "nodemon", "api/server.mjs"]
+    # volumes:
+    #   - .:/app
+
+volumes:
+  hrbot_pg:
